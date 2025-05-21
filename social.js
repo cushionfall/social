@@ -22,7 +22,7 @@ function submit() {
         file: file,
     };
     
-    check(userdata);
+    check,dataPhp(userdata);
 }
 
 function check(userdata) {
@@ -53,6 +53,12 @@ function check(userdata) {
         document.getElementById("error_field").innerHTML = "";  // Clear error message
         console.log("done");
     }
+}
+function dataPhp(userdata) {
+    fetch('http://localhost/student_management/db.php',{
+        method: 'post',
+        body: userdata
+    })
 }
 
 
