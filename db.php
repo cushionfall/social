@@ -1,8 +1,15 @@
 <?php
-$username="localhost";
-$password="";
-$db="login"
-CREATE TABLE IF NOT EXISTS users{
+function conn(){
+    $DB_USER="root";
+    $DB_PASSWORD="";
+    $DB_NAME="social_media";
+    $DB_HOST="localhost";
+    $conn = mysqli_connect($DB_HOST,$DB_USER,$DB_PASSWORD,$DB_NAME);
+    return $conn;
+}
+function createTables(){
+    $table_query = `
+    CREATE TABLE IF NOT EXISTS users{
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_name VARCHAR(64) NOT NULL UNIQUE,
     f_name VARCHAR(64) NOT NULL,
@@ -40,4 +47,20 @@ CREATE TABLE IF NOT EXISTS likes{
     FOREIGN KEY (post_id) REFERENCES post(id) ON DELETE CASCADE,
     UNIQUE(user_id, post_id)
 };
+    `;
+    $DB_USER="root";
+    $DB_PASSWORD="";
+    $DB_NAME="login";
+    $DB_HOST="localhost";
+    $conn = mysqli_connect($DB_HOST,$DB_USER,$DB_PASSWORD,$DB_NAME);
+    if (mysqli_query($conn, $table_query)){
+        mysqli_close($conn);
+        return true;
+    }
+    else{
+        mysqli_close($conn);
+        return false;
+    };
+}
+createTables() ;
 ?>
