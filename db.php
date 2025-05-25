@@ -3,6 +3,7 @@ header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
 
+// Database connection function
 function conn(){
     $DB_USER = "root";
     $DB_PASSWORD = "";
@@ -15,6 +16,7 @@ function conn(){
     return $conn;
 }
 
+// Table creation
 function createTables() {
     $table_query = "
     CREATE TABLE IF NOT EXISTS users (
@@ -54,7 +56,6 @@ function createTables() {
         user_id INT NOT NULL,
         post_id INT NOT NULL,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-        FOREIGN KEY (post_id) REFERENCES post(id) ON DELETE CASCADE,
         UNIQUE(user_id, post_id)
     );
     ";
@@ -77,51 +78,57 @@ function createTables() {
     }
 }
 
-// Call createTables explicitly once to create the tables
+// Call to create tables if not already created
 createTables();
 
-function insertTable() {
-    if ($_SERVER['REQUEST_METHOD'] === "POST") {
-        $conn = conn();
-        $f_name = $_POST['firstName'] ?? '';
-        $l_name = $_POST['lastName'] ?? '';
-        $username = $_POST['userName'] ?? '';
-        $bio = $_POST['bio'] ?? '';
-        $email = $_POST['email'] ?? '';
-        $password = $_POST['password'] ?? '';
-        $dob = $_POST['dob'] ?? '';
+// Get user input
+$fn = $_POST['f_name'] ?? '';
+$ln = $_POST['l_name'] ?? '';
+$username = $_POST['username'] ?? '';
+$password = $_POST['password'] ?? '';
+$bio = $_POST['bio'] ?? '';
+$email = $_POST['email'] ?? '';
+$dob = $_POST['dob'] ?? '';
+$file_url = $_POST['file'] ?? 'default.png';
 
-        $password_hashed = password_hash($password, PASSWORD_DEFAULT);
-
-        $profile_img_name = 'default.png';
-        if (isset($_FILES['profile_img']) && $_FILES['profile_img']['error'] === UPLOAD_ERR_OK) {
-            $upload_dir = 'uploads/';
-            if (!is_dir($upload_dir)) {
-                mkdir($upload_dir, 0755, true);
-            }
-            $tmp_name = $_FILES['profile_img']['tmp_name'];
-            $profile_img_name = basename($_FILES['profile_img']['name']);
-            $target_file = $upload_dir . $profile_img_name;
-
-            if (!move_uploaded_file($tmp_name, $target_file)) {
-                $profile_img_name = 'default.png';
-            }
-        }
-
-        $stmt = $conn->prepare("INSERT INTO users (user_name, f_name, l_name, bio, profile_img, password, email, dob) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param("ssssssss", $username, $f_name, $l_name, $bio, $profile_img_name, $password_hashed, $email, $dob);
-
-        if ($stmt->execute()) {
-            echo json_encode(['status' => 'success', 'message' => 'User inserted successfully']);
-        } else {
-            echo json_encode(['status' => 'error', 'message' => $stmt->error]);
-        }
-
-        $stmt->close();
-        $conn->close();
-    }
+// Validate required fields
+if (empty($fn) || empty($ln) || empty($username) || empty($password) || empty($email) || empty($dob)) {
+    echo "Error: All fields are required.";
+    exit;
 }
 
-// To handle the insert request, call insertTable() only when POST is received:
-insertTable();
+// Validate email format
+if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    echo "Error: Invalid email format.";
+    exit;
+}
+
+// Validate date format (YYYY-MM-DD)
+if (!DateTime::createFromFormat('Y-m-d', $dob)) {
+    echo "Error: Invalid date format. Use YYYY-MM-DD.";
+    exit;
+}
+
+// Hash the password
+$hashed_password = password_hash($password, PASSWORD_DEFAULT);
+
+// Insert user function
+function insert($fn, $ln, $username, $hashed_password, $bio, $file_url, $email, $dob) {
+    $conn = conn();
+
+    $stmt = $conn->prepare("INSERT INTO users (f_name, l_name, user_name, password, bio, profile_img, email, dob) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param("ssssssss", $fn, $ln, $username, $hashed_password, $bio, $file_url, $email, $dob);
+
+    if ($stmt->execute()) {
+        echo "User registered successfully.";
+    } else {
+        echo "Failed to insert data: " . $stmt->error;
+    }
+
+    $stmt->close();
+    $conn->close();
+}
+
+// Insert the user
+insert($fn, $ln, $username, $hashed_password, $bio, $file_url, $email, $dob);
 ?>
